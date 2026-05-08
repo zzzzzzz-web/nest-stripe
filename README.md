@@ -77,7 +77,7 @@ All routes are prefixed with `/api`. Protected routes require a `Authorization: 
 
 | Method | Route | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/customers` | Required | Create a customer |
+| `POST` | `/api/customers` | Public | Create a customer |
 | `GET` | `/api/customers` | Required | List customers |
 | `GET` | `/api/customers/:id` | Required | Get a customer |
 | `DELETE` | `/api/customers/:id` | Required | Delete a customer |
@@ -86,7 +86,8 @@ All routes are prefixed with `/api`. Protected routes require a `Authorization: 
 
 | Method | Route | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/payments/intents` | Required | Create a payment intent |
+| `POST` | `/api/payments/intents` | Public | Create a payment intent |
+| `GET` | `/api/payments/intents` | Required | List payment intents |
 | `GET` | `/api/payments/intents/:id` | Required | Get a payment intent |
 | `POST` | `/api/payments/intents/:id/cancel` | Required | Cancel a payment intent |
 
@@ -117,6 +118,19 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 The CLI will print a `whsec_...` secret — set that as `STRIPE_WEBHOOK_SECRET` in `.env` and restart the app.
 
 For production, create a webhook endpoint in the Stripe Dashboard (Developers → Webhooks) pointing to your public URL, and use the signing secret it provides.
+
+## Demo
+
+The `demo/` directory contains standalone HTML pages for testing the API in a browser — no build step, just open the file.
+
+| Page | Description | Auth |
+|---|---|---|
+| `index.html` | Landing page with links to all demos | — |
+| `dashboard.html` | Lists all customers and recent payments. Auto-creates a demo admin account on first load. | Auto |
+| `checkout.html` | One-time payment using Stripe Elements | Public |
+| `customers.html` | Create a Stripe customer | Public |
+
+Pages share a `shared.js` (API helpers, auth token storage) and `shared.css`. The Stripe publishable key is entered once via a settings popover and saved to `localStorage`.
 
 ## Swagger
 

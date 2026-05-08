@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – Demo</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="shared.js"></script>
+  <style>
+    body { align-items: flex-start; }
+    .card { max-width: 820px; }
+
+    .dash-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .dash-header h1 { margin: 0; }
+    .status-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #d1d5db;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .status-dot.connected { background: #10b981; }
+    .status-line {
+      font-size: 13px;
+      color: #9ca3af;
+      margin: 0 0 32px;
+    }
+
+    .section { margin-bottom: 32px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .section-header .section-title { margin: 0; }
+    .btn-refresh {
+      background: none;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #6b7280;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-refresh:hover { background: #f9fafb; border-color: #d1d5db; }
+    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="dash-header">
+      <h1>Dashboard</h1>
+    </div>
+    <p class="status-line" id="status-line">
+      <span class="status-dot" id="status-dot"></span>Connecting…
+    </p>
+
+    <div id="content" hidden>
+      <div class="section">
+        <div class="section-header">
+          <p class="section-title">Customers</p>
+          <button class="btn-refresh" id="refresh-customers">Refresh</button>
+        </div>
+        <div id="customers-list"><p class="loading">Loading…</p></div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="section">
+        <div class="section-header">
+          <p class="section-title">Recent Payments</p>
+          <button class="btn-refresh" id="refresh-payments">Refresh</button>
+        </div>
+        <div id="payments-list"><p class="loading">Loading…</p></div>
+      </div>
+    </div>
+
+    <div id="error-msg" class="result error" hidden></div>
+  </div>
+
+  <script>
+    // Hardcoded admin account — created automatically on first load
+    const ADMIN_EMAIL    = 'admin@demo.local'
+    const ADMIN_PASSWORD = 'demo-admin-123'
+
+    const statusDot  = document.getElementById('status-dot')
+    const statusLine = document.getElementById('status-line')
+    const content    = document.getElementById('content')
+    const errorMsg   = document.getElementById('error-msg')
+
+    function setStatus(text, connected = false) {
+      statusDot.className = 'status-dot' + (connected ? ' connected' : '')
+      statusLine.innerHTML = `<span class="status-dot${connected ? ' connected' : ''}"></span>${text}`
+    }
+
+    async function autoLogin() {
+      if (getAuthToken()) return
+      try {
+        const { access_token } = await apiFetch('/auth/login', {
+          method: 'POST',
+          body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
+        })
+        setAuthToken(access_token)
+      } catch {
+        // User doesn't exist yet — register
+        const { access_token } = await apiFetch('/auth/register', {
+          method: 'POST',
+          body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
+        })
+        setAuthToken(access_token)
+      }
+    }
+
+    function formatAmount(amount, currency) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency ?? 'usd',
+      }).format(amount / 100)
+    }
+
+    function formatDate(ts) {
+      return new Date(ts * 1000).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+      })
+    }
+
+    async function loadCustomers() {
+      const listEl = document.getElementById('customers-list')
+      const btn    = document.getElementById('refresh-customers')
+      btn.disabled = true
+      listEl.innerHTML = '<p class="loading">Loading…</p>'
+      try {
+        const res = await apiFetch('/customers')
+        const customers = res.data ?? []
+        if (!customers.length) {
+          listEl.innerHTML = '<p class="empty">No customers yet.</p>'
+          return
+        }
+        listEl.innerHTML = `
+          <table class="table">
+            <thead>
+              <tr><th>Email</th><th>Name</th><th>ID</th><th>Created</th></tr>
+            </thead>
+            <tbody>
+              ${customers.map(c => `
+                <tr>
+                  <td>${c.email ?? '<span class="muted">—</span>'}</td>
+                  <td>${c.name  ?? '<span class="muted">—</span>'}</td>
+                  <td class="mono">${c.id}</td>
+                  <td class="muted">${formatDate(c.created)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `
+      } catch (err) {
+        listEl.innerHTML = `<p class="muted">${err.message}</p>`
+      } finally {
+        btn.disabled = false
+      }
+    }
+
+    async function loadPayments() {
+      const listEl = document.getElementById('payments-list')
+      const btn    = document.getElementById('refresh-payments')
+      btn.disabled = true
+      listEl.innerHTML = '<p class="loading">Loading…</p>'
+      try {
+        const res = await apiFetch('/payments/intents')
+        const payments = res.data ?? []
+        if (!payments.length) {
+          listEl.innerHTML = '<p class="empty">No payments yet. Try the <a href="checkout.html">Checkout</a> demo.</p>'
+          return
+        }
+        listEl.innerHTML = `
+          <table class="table">
+            <thead>
+              <tr><th>ID</th><th>Amount</th><th>Status</th><th>Description</th><th>Created</th></tr>
+            </thead>
+            <tbody>
+              ${payments.map(p => `
+                <tr>
+                  <td class="mono">${p.id}</td>
+                  <td>${formatAmount(p.amount, p.currency)}</td>
+                  <td><span class="badge badge-${p.status}">${p.status}</span></td>
+                  <td>${p.description ?? '<span class="muted">—</span>'}</td>
+                  <td class="muted">${formatDate(p.created)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `
+      } catch (err) {
+        listEl.innerHTML = `<p class="muted">${err.message}</p>`
+      } finally {
+        btn.disabled = false
+      }
+    }
+
+    document.getElementById('refresh-customers').addEventListener('click', loadCustomers)
+    document.getElementById('refresh-payments').addEventListener('click', loadPayments)
+
+    async function init() {
+      try {
+        setStatus('Connecting…')
+        await autoLogin()
+        setStatus(`Connected as <strong>${ADMIN_EMAIL}</strong>`, true)
+        content.hidden = false
+        await Promise.all([loadCustomers(), loadPayments()])
+      } catch (err) {
+        setStatus('Connection failed')
+        setResult(errorMsg, 'error', `Could not connect: ${err.message}`)
+      }
+    }
+
+    init()
+  </script>
+</body>
+</html>

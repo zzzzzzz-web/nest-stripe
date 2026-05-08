@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout – Demo</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="shared.js"></script>
+</head>
+<body>
+  <div class="card" id="card">
+    <h1>Checkout</h1>
+    <p class="subtitle">One-time payment</p>
+
+    <form id="form" hidden>
+      <div class="field">
+        <label for="amount">Amount</label>
+        <div class="prefix-wrap">
+          <span class="prefix">$</span>
+          <input type="number" id="amount" step="0.01" min="0.50" value="20.00" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="description">
+          Description <span class="optional">(optional)</span>
+        </label>
+        <input type="text" id="description" value="Test order" placeholder="Order #1234">
+      </div>
+
+      <div class="field">
+        <label>Card details</label>
+        <div id="card-element" class="card-element-wrap"></div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submit-btn">Pay $20.00</button>
+    </form>
+
+    <div id="result" class="result" hidden></div>
+
+    <div id="hint" class="hint" hidden>
+      <strong>Test card:</strong> 4242 4242 4242 4242 &nbsp;·&nbsp; Any future date &nbsp;·&nbsp; Any CVC
+    </div>
+  </div>
+
+  <script>
+    const card     = document.getElementById('card')
+    const form     = document.getElementById('form')
+    const resultEl = document.getElementById('result')
+    const hint     = document.getElementById('hint')
+    const amountEl = document.getElementById('amount')
+    const submitBtn = document.getElementById('submit-btn')
+    const cardEl   = document.getElementById('card-element')
+
+    let stripe = null
+    let cardElement = null
+
+    function updateLabel() {
+      const val = parseFloat(amountEl.value || '0').toFixed(2)
+      submitBtn.textContent = `Pay $${val}`
+    }
+    amountEl.addEventListener('input', updateLabel)
+
+    function initStripe(key) {
+      if (cardElement) { cardElement.destroy(); cardElement = null }
+
+      stripe = Stripe(key)
+      const elements = stripe.elements()
+      cardElement = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '15px',
+            color: '#111827',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            '::placeholder': { color: '#9ca3af' },
+          },
+          invalid: { color: '#dc2626' },
+        },
+      })
+      cardElement.mount(cardEl)
+      cardElement.on('focus', () => cardEl.classList.add('focused'))
+      cardElement.on('blur',  () => cardEl.classList.remove('focused'))
+
+      form.hidden = false
+      hint.hidden = false
+      resultEl.hidden = true
+    }
+
+    initStripeSettings(card, initStripe)
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault()
+      if (!stripe || !cardElement) return
+
+      const cents = Math.round(parseFloat(amountEl.value) * 100)
+      if (cents < 50) return setResult(resultEl, 'error', 'Minimum amount is $0.50')
+
+      submitBtn.disabled = true
+      submitBtn.innerHTML = '<span class="spinner"></span>Processing…'
+      resultEl.hidden = true
+
+      try {
+        const intent = await apiFetch('/payments/intents', {
+          method: 'POST',
+          body: {
+            amount: cents,
+            currency: 'usd',
+            description: document.getElementById('description').value.trim() || undefined,
+          },
+        })
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment(
+          intent.client_secret,
+          { payment_method: { card: cardElement } },
+        )
+
+        if (error) {
+          setResult(resultEl, 'error', error.message)
+        } else {
+          setResult(resultEl, 'success', `Payment ${paymentIntent.status}<br><small>${paymentIntent.id}</small>`)
+        }
+      } catch (err) {
+        setResult(resultEl, 'error', err.message)
+      } finally {
+        submitBtn.disabled = false
+        updateLabel()
+      }
+    })
+  </script>
+</body>
+</html>

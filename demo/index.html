@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nest-stripe Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f6f9fc;
+      margin: 0;
+      padding: 48px 24px 64px;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    header { margin-bottom: 40px; }
+    header h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      color: #1a1a2e;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 15px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 520px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .demo-card {
+      display: block;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid #e5e7eb;
+      transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .demo-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--accent, #635bff);
+      border-radius: 10px 10px 0 0;
+    }
+    .demo-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+      border-color: #d1d5db;
+    }
+
+    .demo-card .icon {
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      background: var(--accent-bg, #ede9fe);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      color: var(--accent, #635bff);
+    }
+
+    .demo-card h2 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      color: #111827;
+    }
+
+    .demo-card p {
+      margin: 0 0 16px;
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .tag-public { background: #f0fdf4; color: #166534; }
+    .tag-auth   { background: #f5f3ff; color: #6d28d9; }
+
+    .arrow {
+      position: absolute;
+      right: 20px; top: 50%;
+      transform: translateY(-50%);
+      color: #d1d5db;
+      font-size: 18px;
+      transition: color 0.15s;
+    }
+    .demo-card:hover .arrow { color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>nest-stripe</h1>
+      <p>Interactive demo pages for the Stripe payments API</p>
+    </header>
+
+    <div class="grid">
+
+      <a href="dashboard.html" class="demo-card" style="--accent:#1a1a2e; --accent-bg:#f1f5f9; grid-column: 1 / -1">
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+        </div>
+        <h2>Dashboard</h2>
+        <p>Overview of all customers and recent payments. Auto-connects with a demo admin account.</p>
+        <span class="tag tag-auth">Auto auth</span>
+        <span class="arrow">›</span>
+      </a>
+
+      <a href="checkout.html" class="demo-card" style="--accent:#635bff; --accent-bg:#ede9fe">
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+        </div>
+        <h2>Checkout</h2>
+        <p>Make a test one-time payment using Stripe Elements and a card.</p>
+        <span class="tag tag-public">Public</span>
+        <span class="arrow">›</span>
+      </a>
+
+      <a href="customers.html" class="demo-card" style="--accent:#3b82f6; --accent-bg:#eff6ff">
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h2>Customers</h2>
+        <p>Register a new Stripe customer with email, name, and phone.</p>
+        <span class="tag tag-public">Public</span>
+        <span class="arrow">›</span>
+      </a>
+
+    </div>
+  </div>
+</body>
+</html>

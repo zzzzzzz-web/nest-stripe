@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Customer – Demo</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="shared.js"></script>
+</head>
+<body>
+  <div class="card">
+    <h1>Create Customer</h1>
+    <p class="subtitle">Register a new Stripe customer</p>
+
+    <form id="form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="customer@example.com" required>
+      </div>
+      <div class="field">
+        <label for="name">Name <span class="optional">(optional)</span></label>
+        <input type="text" id="name" placeholder="Jane Doe">
+      </div>
+      <div class="field">
+        <label for="phone">Phone <span class="optional">(optional)</span></label>
+        <input type="text" id="phone" placeholder="+15555555555">
+      </div>
+      <button type="submit" class="btn-primary" id="submit-btn">Create Customer</button>
+    </form>
+
+    <div id="result" class="result" hidden></div>
+  </div>
+
+  <script>
+    const form      = document.getElementById('form')
+    const submitBtn = document.getElementById('submit-btn')
+    const resultEl  = document.getElementById('result')
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault()
+      submitBtn.disabled = true
+      submitBtn.textContent = 'Creating…'
+      resultEl.hidden = true
+
+      try {
+        const customer = await apiFetch('/customers', {
+          method: 'POST',
+          body: {
+            email: document.getElementById('email').value.trim(),
+            name:  document.getElementById('name').value.trim()  || undefined,
+            phone: document.getElementById('phone').value.trim() || undefined,
+          },
+        })
+        setResult(resultEl, 'success',
+          `Customer created: <strong>${customer.email}</strong><br><small class="mono">${customer.id}</small>`)
+        form.reset()
+      } catch (err) {
+        setResult(resultEl, 'error', err.message)
+      } finally {
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Create Customer'
+      }
+    })
+  </script>
+</body>
+</html>
