@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { APP_GUARD } from '@nestjs/core'
 import { ConfigModule } from '@nestjs/config'
+import { validate } from '@/common/env.validation'
 import { PrismaModule } from '@/prisma/prisma.module'
 import { StripeModule } from '@/stripe/stripe.module'
 import { AuthModule } from '@/auth/auth.module'
@@ -11,7 +12,7 @@ import { JwtGuard } from '@/auth/jwt.guard'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate }),
     PrismaModule,
     StripeModule,
     AuthModule,
