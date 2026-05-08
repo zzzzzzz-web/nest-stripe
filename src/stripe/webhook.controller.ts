@@ -10,10 +10,12 @@ import { ConfigService } from '@nestjs/config'
 import { Request } from 'express'
 import Stripe from 'stripe'
 import { PrismaService } from '@/prisma/prisma.service'
+import { Public } from '@/auth/public.decorator'
 import { StripeService } from './stripe.service'
 
 type RawRequest = Request & { rawBody?: Buffer }
 
+@Public()
 @Controller('webhooks')
 export class WebhookController {
   private readonly logger = new Logger(WebhookController.name)
