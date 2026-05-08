@@ -11,16 +11,20 @@ export class PaymentsService {
   ) {}
 
   async create(dto: CreatePaymentIntentDto) {
-    const paymentIntent = await this.stripeService.client.paymentIntents.create({
-      amount: dto.amount,
-      currency: dto.currency,
-      customer: dto.customerId,
-      description: dto.description,
-      automatic_payment_methods: { enabled: true },
-    })
+    const paymentIntent = await this.stripeService.client.paymentIntents.create(
+      {
+        amount: dto.amount,
+        currency: dto.currency,
+        customer: dto.customerId,
+        description: dto.description,
+        automatic_payment_methods: { enabled: true },
+      },
+    )
 
     const customer = dto.customerId
-      ? await this.prisma.customer.findUnique({ where: { stripeId: dto.customerId } })
+      ? await this.prisma.customer.findUnique({
+          where: { stripeId: dto.customerId },
+        })
       : null
 
     await this.prisma.payment.create({

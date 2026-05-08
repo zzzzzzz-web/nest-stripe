@@ -73,9 +73,11 @@ describe('PaymentsService', () => {
       await service.create({ amount: 2000, currency: 'usd' })
 
       expect(mockPrisma.customer.findUnique).not.toHaveBeenCalled()
-      expect(mockPrisma.payment.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ customerId: undefined }) }),
-      )
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const call = mockPrisma.payment.create.mock.calls[0][0] as {
+        data: { customerId: unknown }
+      }
+      expect(call.data.customerId).toBeUndefined()
     })
   })
 
@@ -85,18 +87,25 @@ describe('PaymentsService', () => {
 
       const result = await service.findOne('pi_123')
 
-      expect(mockStripe.client.paymentIntents.retrieve).toHaveBeenCalledWith('pi_123')
+      expect(mockStripe.client.paymentIntents.retrieve).toHaveBeenCalledWith(
+        'pi_123',
+      )
       expect(result).toBe(paymentIntent)
     })
   })
 
   describe('cancel', () => {
     it('cancels payment intent in Stripe', async () => {
-      mockStripe.client.paymentIntents.cancel.mockResolvedValue({ ...paymentIntent, status: 'canceled' })
+      mockStripe.client.paymentIntents.cancel.mockResolvedValue({
+        ...paymentIntent,
+        status: 'canceled',
+      })
 
       await service.cancel('pi_123')
 
-      expect(mockStripe.client.paymentIntents.cancel).toHaveBeenCalledWith('pi_123')
+      expect(mockStripe.client.paymentIntents.cancel).toHaveBeenCalledWith(
+        'pi_123',
+      )
     })
   })
 })

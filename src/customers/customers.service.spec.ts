@@ -38,10 +38,17 @@ describe('CustomersService', () => {
 
   describe('create', () => {
     it('creates customer in Stripe, saves to DB, returns Stripe customer', async () => {
-      const stripeCustomer = { id: 'cus_123', email: 'test@example.com', name: 'Test' }
+      const stripeCustomer = {
+        id: 'cus_123',
+        email: 'test@example.com',
+        name: 'Test',
+      }
       mockStripe.client.customers.create.mockResolvedValue(stripeCustomer)
 
-      const result = await service.create({ email: 'test@example.com', name: 'Test' })
+      const result = await service.create({
+        email: 'test@example.com',
+        name: 'Test',
+      })
 
       expect(mockStripe.client.customers.create).toHaveBeenCalledWith({
         email: 'test@example.com',
@@ -62,7 +69,9 @@ describe('CustomersService', () => {
 
       const result = await service.findOne('cus_123')
 
-      expect(mockStripe.client.customers.retrieve).toHaveBeenCalledWith('cus_123')
+      expect(mockStripe.client.customers.retrieve).toHaveBeenCalledWith(
+        'cus_123',
+      )
       expect(result).toBe(stripeCustomer)
     })
   })
@@ -73,7 +82,9 @@ describe('CustomersService', () => {
 
       await service.list()
 
-      expect(mockStripe.client.customers.list).toHaveBeenCalledWith({ limit: 10 })
+      expect(mockStripe.client.customers.list).toHaveBeenCalledWith({
+        limit: 10,
+      })
     })
 
     it('lists customers with a custom limit', async () => {
@@ -81,7 +92,9 @@ describe('CustomersService', () => {
 
       await service.list(25)
 
-      expect(mockStripe.client.customers.list).toHaveBeenCalledWith({ limit: 25 })
+      expect(mockStripe.client.customers.list).toHaveBeenCalledWith({
+        limit: 25,
+      })
     })
   })
 

@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import * as bcrypt from 'bcrypt'
 import request from 'supertest'
+import { type App } from 'supertest/types'
 import { AppModule } from '@/app.module'
 import { StripeExceptionFilter } from '@/common/filters/stripe-exception.filter'
 import { PrismaService } from '@/prisma/prisma.service'
@@ -43,9 +44,12 @@ describe('App (e2e)', () => {
   describe('POST /api/auth/register', () => {
     it('returns a token on success', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null)
-      mockPrisma.user.create.mockResolvedValue({ id: '1', email: 'new@example.com' })
+      mockPrisma.user.create.mockResolvedValue({
+        id: '1',
+        email: 'new@example.com',
+      })
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as App)
         .post('/api/auth/register')
         .send({ email: 'new@example.com', password: 'password123' })
         .expect(201)
@@ -56,14 +60,14 @@ describe('App (e2e)', () => {
     it('returns 409 when email is taken', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: '1' })
 
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/api/auth/register')
         .send({ email: 'taken@example.com', password: 'password123' })
         .expect(409)
     })
 
     it('returns 400 on validation failure', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/api/auth/register')
         .send({ email: 'not-an-email', password: 'short' })
         .expect(400)
@@ -73,9 +77,13 @@ describe('App (e2e)', () => {
   describe('POST /api/auth/login', () => {
     it('returns a token on valid credentials', async () => {
       const hash = await bcrypt.hash('password123', 10)
-      mockPrisma.user.findUnique.mockResolvedValue({ id: '1', email: 'user@example.com', password: hash })
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: 'user@example.com',
+        password: hash,
+      })
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as App)
         .post('/api/auth/login')
         .send({ email: 'user@example.com', password: 'password123' })
         .expect(201)
@@ -85,9 +93,13 @@ describe('App (e2e)', () => {
 
     it('returns 401 on wrong password', async () => {
       const hash = await bcrypt.hash('password123', 10)
-      mockPrisma.user.findUnique.mockResolvedValue({ id: '1', email: 'user@example.com', password: hash })
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: 'user@example.com',
+        password: hash,
+      })
 
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/api/auth/login')
         .send({ email: 'user@example.com', password: 'wrongpassword' })
         .expect(401)
@@ -96,7 +108,7 @@ describe('App (e2e)', () => {
     it('returns 401 when user does not exist', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null)
 
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/api/auth/login')
         .send({ email: 'nobody@example.com', password: 'password123' })
         .expect(401)
@@ -105,11 +117,13 @@ describe('App (e2e)', () => {
 
   describe('Protected routes', () => {
     it('returns 401 without a token', async () => {
-      await request(app.getHttpServer()).get('/api/customers').expect(401)
+      await request(app.getHttpServer() as App)
+        .get('/api/customers')
+        .expect(401)
     })
 
     it('returns 401 with an invalid token', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .get('/api/customers')
         .set('Authorization', 'Bearer invalid.token.here')
         .expect(401)

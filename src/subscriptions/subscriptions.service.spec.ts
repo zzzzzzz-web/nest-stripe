@@ -53,28 +53,38 @@ describe('SubscriptionsService', () => {
 
   describe('create', () => {
     it('creates subscription and saves to DB when customer exists', async () => {
-      mockStripe.client.subscriptions.create.mockResolvedValue(stripeSubscription)
+      mockStripe.client.subscriptions.create.mockResolvedValue(
+        stripeSubscription,
+      )
       mockPrisma.customer.findUnique.mockResolvedValue({ id: 'db_cus_123' })
 
-      const result = await service.create({ customerId: 'cus_123', items: [{ price: 'price_123' }] })
-
-      expect(mockPrisma.subscription.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          stripeId: 'sub_123',
-          customerId: 'db_cus_123',
-          status: 'active',
-          priceId: 'price_123',
-          cancelAtPeriodEnd: false,
-        }),
+      const result = await service.create({
+        customerId: 'cus_123',
+        items: [{ price: 'price_123' }],
       })
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const call = mockPrisma.subscription.create.mock.calls[0][0] as {
+        data: Record<string, unknown>
+      }
+      expect(call.data.stripeId).toBe('sub_123')
+      expect(call.data.customerId).toBe('db_cus_123')
+      expect(call.data.status).toBe('active')
+      expect(call.data.priceId).toBe('price_123')
+      expect(call.data.cancelAtPeriodEnd).toBe(false)
       expect(result).toBe(stripeSubscription)
     })
 
     it('skips DB write when customer not found locally', async () => {
-      mockStripe.client.subscriptions.create.mockResolvedValue(stripeSubscription)
+      mockStripe.client.subscriptions.create.mockResolvedValue(
+        stripeSubscription,
+      )
       mockPrisma.customer.findUnique.mockResolvedValue(null)
 
-      await service.create({ customerId: 'cus_unknown', items: [{ price: 'price_123' }] })
+      await service.create({
+        customerId: 'cus_unknown',
+        items: [{ price: 'price_123' }],
+      })
 
       expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
     })
@@ -82,11 +92,15 @@ describe('SubscriptionsService', () => {
 
   describe('findOne', () => {
     it('retrieves subscription from Stripe', async () => {
-      mockStripe.client.subscriptions.retrieve.mockResolvedValue(stripeSubscription)
+      mockStripe.client.subscriptions.retrieve.mockResolvedValue(
+        stripeSubscription,
+      )
 
       const result = await service.findOne('sub_123')
 
-      expect(mockStripe.client.subscriptions.retrieve).toHaveBeenCalledWith('sub_123')
+      expect(mockStripe.client.subscriptions.retrieve).toHaveBeenCalledWith(
+        'sub_123',
+      )
       expect(result).toBe(stripeSubscription)
     })
   })
@@ -97,7 +111,9 @@ describe('SubscriptionsService', () => {
 
       await service.list()
 
-      expect(mockStripe.client.subscriptions.list).toHaveBeenCalledWith(undefined)
+      expect(mockStripe.client.subscriptions.list).toHaveBeenCalledWith(
+        undefined,
+      )
     })
 
     it('lists subscriptions filtered by customerId', async () => {
@@ -105,30 +121,42 @@ describe('SubscriptionsService', () => {
 
       await service.list('cus_123')
 
-      expect(mockStripe.client.subscriptions.list).toHaveBeenCalledWith({ customer: 'cus_123' })
+      expect(mockStripe.client.subscriptions.list).toHaveBeenCalledWith({
+        customer: 'cus_123',
+      })
     })
   })
 
   describe('update', () => {
     it('updates subscription in Stripe', async () => {
-      mockStripe.client.subscriptions.update.mockResolvedValue(stripeSubscription)
+      mockStripe.client.subscriptions.update.mockResolvedValue(
+        stripeSubscription,
+      )
 
       await service.update('sub_123', { cancelAtPeriodEnd: true })
 
-      expect(mockStripe.client.subscriptions.update).toHaveBeenCalledWith('sub_123', {
-        default_payment_method: undefined,
-        cancel_at_period_end: true,
-      })
+      expect(mockStripe.client.subscriptions.update).toHaveBeenCalledWith(
+        'sub_123',
+        {
+          default_payment_method: undefined,
+          cancel_at_period_end: true,
+        },
+      )
     })
   })
 
   describe('cancel', () => {
     it('cancels subscription in Stripe', async () => {
-      mockStripe.client.subscriptions.cancel.mockResolvedValue({ ...stripeSubscription, status: 'canceled' })
+      mockStripe.client.subscriptions.cancel.mockResolvedValue({
+        ...stripeSubscription,
+        status: 'canceled',
+      })
 
       await service.cancel('sub_123')
 
-      expect(mockStripe.client.subscriptions.cancel).toHaveBeenCalledWith('sub_123')
+      expect(mockStripe.client.subscriptions.cancel).toHaveBeenCalledWith(
+        'sub_123',
+      )
     })
   })
 })

@@ -2,7 +2,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsInt, IsOptional, IsString, Min } from 'class-validator'
 
 export class CreatePaymentIntentDto {
-  @ApiProperty({ example: 2000, description: 'Amount in smallest currency unit (cents)' })
+  @ApiProperty({
+    example: 2000,
+    description: 'Amount in smallest currency unit (cents)',
+  })
   @IsInt()
   @Min(1)
   amount: number

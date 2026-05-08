@@ -28,20 +28,27 @@ export class WebhookController {
 
   @Post('stripe')
   async handle(
-    @Headers('stripe-signature') signature: string,
+    @Headers('stripe-signature') signature: string | undefined,
     @Req() req: RawRequest,
   ) {
-    const secret = this.configService.getOrThrow<string>('STRIPE_WEBHOOK_SECRET')
+    if (!signature)
+      throw new BadRequestException('Missing stripe-signature header')
+    if (!req.rawBody) throw new BadRequestException('Missing request body')
+
+    const secret = this.configService.getOrThrow<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    )
 
     let event: Stripe.Event
     try {
       event = this.stripeService.client.webhooks.constructEvent(
-        req.rawBody!,
+        req.rawBody,
         signature,
         secret,
       )
     } catch (err) {
-      throw new BadRequestException(`Webhook verification failed: ${err.message}`)
+      const message = err instanceof Error ? err.message : 'unknown error'
+      throw new BadRequestException(`Webhook verification failed: ${message}`)
     }
 
     this.logger.log(`Received: ${event.type}`)
@@ -50,12 +57,12 @@ export class WebhookController {
       case 'payment_intent.succeeded':
       case 'payment_intent.payment_failed':
       case 'payment_intent.canceled':
-        await this.onPaymentIntentUpdated(event.data.object as Stripe.PaymentIntent)
+        await this.onPaymentIntentUpdated(event.data.object)
         break
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':
-        await this.onSubscriptionUpdated(event.data.object as Stripe.Subscription)
+        await this.onSubscriptionUpdated(event.data.object)
         break
       default:
         this.logger.log(`Unhandled event: ${event.type}`)
@@ -65,23 +72,37 @@ export class WebhookController {
   }
 
   private async onPaymentIntentUpdated(paymentIntent: Stripe.PaymentIntent) {
-    await this.prisma.payment.updateMany({
+    const result = await this.prisma.payment.updateMany({
       where: { stripeId: paymentIntent.id },
       data: { status: paymentIntent.status },
     })
-    this.logger.log(`Payment ${paymentIntent.id} → ${paymentIntent.status}`)
+    if (result.count === 0) {
+      this.logger.warn(`Payment ${paymentIntent.id} not found in DB`)
+    } else {
+      this.logger.log(`Payment ${paymentIntent.id} → ${paymentIntent.status}`)
+    }
   }
 
   private async onSubscriptionUpdated(subscription: Stripe.Subscription) {
-    await this.prisma.subscription.updateMany({
+    const result = await this.prisma.subscription.updateMany({
       where: { stripeId: subscription.id },
       data: {
         status: subscription.status,
-        currentPeriodStart: new Date((subscription.items.data[0]?.current_period_start ?? 0) * 1000),
-        currentPeriodEnd: new Date((subscription.items.data[0]?.current_period_end ?? 0) * 1000),
+        currentPeriodStart: new Date(
+          (subscription.items.data[0]?.current_period_start ?? 0) * 1000,
+        ),
+        currentPeriodEnd: new Date(
+          (subscription.items.data[0]?.current_period_end ?? 0) * 1000,
+        ),
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
       },
     })
-    this.logger.log(`Subscription ${subscription.id} → ${subscription.status}`)
+    if (result.count === 0) {
+      this.logger.warn(`Subscription ${subscription.id} not found in DB`)
+    } else {
+      this.logger.log(
+        `Subscription ${subscription.id} → ${subscription.status}`,
+      )
+    }
   }
 }
