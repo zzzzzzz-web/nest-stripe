@@ -6,6 +6,7 @@ import { StripeExceptionFilter } from '@/common/filters/stripe-exception.filter'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true })
+  app.enableCors()
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }))
   app.useGlobalFilters(new StripeExceptionFilter())
   app.setGlobalPrefix('api')

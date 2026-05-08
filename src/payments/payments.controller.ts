@@ -8,6 +8,7 @@ import {
   Post,
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { Public } from '@/auth/public.decorator'
 import { PaymentsService } from './payments.service'
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto'
 
@@ -18,6 +19,7 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @ApiOperation({ summary: 'Create a payment intent' })
+  @Public()
   @Post('intents')
   create(@Body() dto: CreatePaymentIntentDto) {
     return this.paymentsService.create(dto)
