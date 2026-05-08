@@ -24,6 +24,7 @@ cp .env.example .env
 | `POSTGRES_DB` | Postgres database name |
 | `STRIPE_SECRET_KEY` | Stripe secret key (`sk_test_...`) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) |
+| `JWT_SECRET` | Secret used to sign JWT tokens |
 
 ## Development
 
@@ -40,6 +41,7 @@ The app runs via `ts-node-dev` — no compilation step. Changes to `src/` hot-re
 On first run, apply the Prisma migrations:
 
 ```bash
+docker compose up -d
 docker compose exec app npx prisma migrate dev --name init
 ```
 
@@ -55,46 +57,83 @@ Build and run the production image:
 
 ```bash
 docker build --target production -t nest-stripe .
-docker run --env-file .env -p 3000:3000 nest-stripe
+docker run --env-file .env -p 3000:3000 -e NODE_ENV=production nest-stripe
 ```
 
-The production build compiles TypeScript to `dist/` inside the image. No source files or `node_modules` are mounted.
+The production build compiles TypeScript to `dist/` inside the image. No source files or `node_modules` are mounted. Swagger docs are disabled when `NODE_ENV=production`.
 
 ## API
 
-All routes are prefixed with `/api`.
+All routes are prefixed with `/api`. Protected routes require a `Authorization: Bearer <token>` header.
+
+### Authentication
+
+| Method | Route | Description |
+|---|---|---|
+| `POST` | `/api/auth/register` | Register a new user, returns JWT |
+| `POST` | `/api/auth/login` | Login, returns JWT |
 
 ### Customers
 
-| Method | Route | Description |
-|---|---|---|
-| `POST` | `/api/customers` | Create a customer |
-| `GET` | `/api/customers` | List customers |
-| `GET` | `/api/customers/:id` | Get a customer |
-| `DELETE` | `/api/customers/:id` | Delete a customer |
+| Method | Route | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/customers` | Required | Create a customer |
+| `GET` | `/api/customers` | Required | List customers |
+| `GET` | `/api/customers/:id` | Required | Get a customer |
+| `DELETE` | `/api/customers/:id` | Required | Delete a customer |
 
 ### Payments
 
-| Method | Route | Description |
-|---|---|---|
-| `POST` | `/api/payments/intents` | Create a payment intent |
-| `GET` | `/api/payments/intents/:id` | Get a payment intent |
-| `POST` | `/api/payments/intents/:id/cancel` | Cancel a payment intent |
+| Method | Route | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/payments/intents` | Required | Create a payment intent |
+| `GET` | `/api/payments/intents/:id` | Required | Get a payment intent |
+| `POST` | `/api/payments/intents/:id/cancel` | Required | Cancel a payment intent |
 
 ### Subscriptions
 
-| Method | Route | Description |
-|---|---|---|
-| `POST` | `/api/subscriptions` | Create a subscription |
-| `GET` | `/api/subscriptions` | List subscriptions |
-| `GET` | `/api/subscriptions/:id` | Get a subscription |
-| `PATCH` | `/api/subscriptions/:id` | Update a subscription |
-| `DELETE` | `/api/subscriptions/:id` | Cancel a subscription |
+| Method | Route | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/subscriptions` | Required | Create a subscription |
+| `GET` | `/api/subscriptions` | Required | List subscriptions |
+| `GET` | `/api/subscriptions/:id` | Required | Get a subscription |
+| `PATCH` | `/api/subscriptions/:id` | Required | Update a subscription |
+| `DELETE` | `/api/subscriptions/:id` | Required | Cancel a subscription |
 
 ### Webhooks
 
-| Method | Route | Description |
-|---|---|---|
-| `POST` | `/api/webhooks/stripe` | Stripe webhook receiver |
+| Method | Route | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/webhooks/stripe` | Stripe signature | Stripe webhook receiver |
 
 Stripe webhook events handled: `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`.
+
+For local webhook testing, use the [Stripe CLI](https://stripe.com/docs/stripe-cli):
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+The CLI will print a `whsec_...` secret — set that as `STRIPE_WEBHOOK_SECRET` in `.env` and restart the app.
+
+For production, create a webhook endpoint in the Stripe Dashboard (Developers → Webhooks) pointing to your public URL, and use the signing secret it provides.
+
+## Swagger
+
+API documentation is available at `http://localhost:3000/docs` in development. Disabled in production.
+
+## Testing
+
+```bash
+# Unit tests
+npm test
+
+# E2e tests
+npm run test:e2e
+
+# Type check
+npx tsc --noEmit
+
+# Lint
+npm run lint
+```
