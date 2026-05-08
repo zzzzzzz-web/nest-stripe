@@ -41,6 +41,10 @@ export class PaymentsService {
     return paymentIntent
   }
 
+  list(limit = 20) {
+    return this.stripeService.client.paymentIntents.list({ limit })
+  }
+
   findOne(id: string) {
     return this.stripeService.client.paymentIntents.retrieve(id)
   }

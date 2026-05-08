@@ -25,6 +25,12 @@ export class PaymentsController {
     return this.paymentsService.create(dto)
   }
 
+  @ApiOperation({ summary: 'List payment intents' })
+  @Get('intents')
+  list() {
+    return this.paymentsService.list()
+  }
+
   @ApiOperation({ summary: 'Get a payment intent' })
   @Get('intents/:id')
   findOne(@Param('id') id: string) {

@@ -8,6 +8,7 @@ import {
   Query,
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { Public } from '@/auth/public.decorator'
 import { CustomersService } from './customers.service'
 import { CreateCustomerDto } from './dto/create-customer.dto'
 
@@ -18,6 +19,7 @@ export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @ApiOperation({ summary: 'Create a customer' })
+  @Public()
   @Post()
   create(@Body() dto: CreateCustomerDto) {
     return this.customersService.create(dto)
